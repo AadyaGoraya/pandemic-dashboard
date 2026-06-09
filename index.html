@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pandemic Early Warning Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+    :root {
+      --bg: #080c10;
+      --surface: #0d1117;
+      --surface2: #141b24;
+      --border: #1e2a38;
+      --border2: #243040;
+      --text: #cdd9e5;
+      --muted: #536070;
+      --dim: #3a4a5a;
+      --red: #f85149;
+      --red-dim: rgba(248, 81, 73, 0.1);
+      --orange: #e3902a;
+      --orange-dim: rgba(227,144,42,0.1);
+      --yellow: #d4a12a;
+      --yellow-dim: rgba(212,161,42,0.1);
+      --green: #3fb950;
+      --green-dim: rgba(63,185,80,0.1);
+      --blue: #388bfd;
+      --blue-dim: rgba(56,139,253,0.1);
+      --teal: #39c5cf;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Space Grotesk', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      height: 52px;
+      gap: 24px;
+    }
+
+    .topbar-brand {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--teal);
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .pulse {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulseAnim 2.5s infinite;
+    }
+
+    @keyframes pulseAnim {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(63,185,80,0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 5px rgba(63,185,80,0); }
+    }
+
+    .topbar-time {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* Alert banner */
+    .alert-banner {
+      background: var(--red-dim);
+      border-bottom: 1px solid rgba(248,81,73,0.2);
+      padding: 9px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    .alert-tag {
+      background: var(--red);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+
+    .alert-text { color: var(--text); }
+    .alert-loc { color: var(--muted); margin-left: auto; white-space: nowrap; }
+
+    /* Main grid */
+    .main {
+      display: grid;
+      grid-template-columns: 260px 1fr 300px;
+      grid-template-rows: auto 1fr;
+      min-height: calc(100vh - 90px);
+    }
+
+    /* Left panel */
+    .left-panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      grid-row: 1 / 3;
+    }
+
+    .panel-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* Search */
+    .search-box {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+    }
+
+    .search-box input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .search-box input::placeholder { color: var(--muted); }
+    .search-icon { color: var(--muted); font-size: 13px; }
+
+    /* Threat levels */
+    .threat-filters {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .threat-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: none;
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--muted);
+      transition: all 0.15s;
+      text-align: left;
+      width: 100%;
+    }
+
+    .threat-btn:hover { background: var(--surface2); color: var(--text); }
+    .threat-btn.active { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+
+    .threat-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .threat-count {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    /* Event list */
+    .event-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .event-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .event-item:hover { background: var(--surface2); }
+    .event-item.selected { background: var(--surface2); border-left: 2px solid var(--teal); padding-left: 18px; }
+
+    .event-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .event-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .severity-pip {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .event-meta {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .event-region {
+      font-size: 11px;
+      color: var(--dim);
+      margin-bottom: 3px;
+    }
+
+    /* Center: map + chart area */
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+
+    /* World map SVG area */
+    .map-area {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      height: 340px;
+      flex-shrink: 0;
+    }
+
+    .map-area svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-label {
+      position: absolute;
+      top: 14px; left: 18px;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 14px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Outbreak pulse rings */
+    .outbreak-point {
+      cursor: pointer;
+    }
+
+    .ring {
+      transform-origin: center;
+      animation: ringPulse 2s infinite;
+    }
+
+    .ring2 { animation-delay: 0.5s; }
+    .ring3 { animation-delay: 1s; }
+
+    @keyframes ringPulse {
+      0% { opacity: 0.6; transform: scale(1); }
+      100% { opacity: 0; transform: scale(2.2); }
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-cell {
+      padding: 16px 20px;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat-cell:last-child { border-right: none; }
+
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Trend chart */
+    .chart-area {
+      flex: 1;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chart-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chart-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .chart-tab {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--mono);
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: none;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+
+    .chart-tab.active { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+    .chart-tab:hover { color: var(--text); }
+
+    .chart-svg-wrap {
+      flex: 1;
+      min-height: 120px;
+      position: relative;
+    }
+
+    .chart-svg-wrap svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Right panel */
+    .right-panel {
+      grid-row: 1 / 3;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .detail-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .detail-name {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .detail-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: var(--mono);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,81,73,0.25); }
+    .badge-orange { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(227,144,42,0.25); }
+    .badge-yellow { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(212,161,42,0.25); }
+    .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(63,185,80,0.25); }
+    .badge-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(56,139,253,0.25); }
+
+    .detail-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-section-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .detail-desc {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* Risk indicators */
+    .risk-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .risk-cell {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .risk-label {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .risk-val {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .risk-bar-track {
+      height: 3px;
+      background: var(--border);
+      border-radius: 99px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .risk-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+    }
+
+    /* Timeline */
+    .event-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+      padding-left: 16px;
+    }
+
+    .event-timeline::before {
+      content: '';
+      position: absolute;
+      left: 5px; top: 6px; bottom: 6px;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .tl-entry {
+      position: relative;
+      padding-bottom: 14px;
+    }
+
+    .tl-dot {
+      position: absolute;
+      left: -14px;
+      top: 5px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid var(--surface);
+    }
+
+    .tl-date {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .tl-text {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* R0 gauge */
+    .r0-display {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .r0-number {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .r0-label {
+      font-size: 11px;
+      color: var(--muted);
+      padding-bottom: 4px;
+    }
+
+    .r0-context {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .no-selection {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      color: var(--muted);
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .no-selection span { font-size: 28px; }
+    .no-selection p { font-size: 12px; font-family: var(--mono); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+    @media (max-width: 1000px) {
+      .main { grid-template-columns: 1fr; grid-template-rows: auto; }
+      .left-panel, .right-panel { grid-row: auto; border-right: none; border-bottom: 1px solid var(--border); }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">BIOSURVEILLANCE // EARLY WARNING SYSTEM</div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-status">
+    <div class="pulse"></div>
+    <span>MONITORING ACTIVE — 14 REGIONS</span>
+  </div>
+  <div class="topbar-time" id="clock"></div>
+</div>
+
+<div class="alert-banner">
+  <div class="alert-tag">ALERT</div>
+  <div class="alert-text">Novel respiratory pathogen — Unusual clustering of severe pneumonia cases reported. Enhanced surveillance activated.</div>
+  <div class="alert-loc">Southeast Asia · 6h ago</div>
+</div>
+
+<div class="main">
+
+  <!-- Left panel -->
+  <div class="left-panel">
+    <div class="panel-header">
+      <div class="panel-label">Active Outbreaks</div>
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" placeholder="Search pathogen or region…" oninput="filterEvents()"/>
+      </div>
+    </div>
+
+    <div class="threat-filters">
+      <div class="panel-label">Threat Level</div>
+      <button class="threat-btn active" onclick="setThreat('all', this)">
+        <span class="threat-dot" style="background:var(--muted)"></span>
+        All levels
+        <span class="threat-count" id="countAll"></span>
+      </button>
+      <button class="threat-btn" onclick="setThreat('critical', this)">
+        <span class="threat-dot" style="background:var(--red)"></span>
+        Critical
+        <span class="threat-count" id="countCritical" style="color:var(--red)"></span>
+      </button>
+      <button class="threat-btn" onclick="setThreat('high', this)">
+        <span class="threat-dot" style="background:var(--orange)"></span>
+        High
+        <span class="threat-count" id="countHigh" style="color:var(--orange)"></span>
+      </button>
+      <button class="threat-btn" onclick="setThreat('moderate', this)">
+        <span class="threat-dot" style="background:var(--yellow)"></span>
+        Moderate
+        <span class="threat-count" id="countModerate" style="color:var(--yellow)"></span>
+      </button>
+      <button class="threat-btn" onclick="setThreat('low', this)">
+        <span class="threat-dot" style="background:var(--green)"></span>
+        Low / Monitoring
+        <span class="threat-count" id="countLow" style="color:var(--green)"></span>
+      </button>
+    </div>
+
+    <div class="event-list" id="eventList"></div>
+  </div>
+
+  <!-- Center panel -->
+  <div class="center-panel">
+    <!-- Map -->
+    <div class="map-area">
+      <div class="map-label">GLOBAL OUTBREAK MAP — JUNE 2025</div>
+      <svg viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg" id="worldMap">
+        <!-- Simplified world landmasses -->
+        <!-- North America -->
+        <path d="M 100 60 L 220 55 L 235 80 L 240 120 L 220 150 L 200 160 L 180 155 L 160 170 L 150 190 L 130 185 L 110 165 L 95 140 L 90 110 L 95 80 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Central America -->
+        <path d="M 160 170 L 175 175 L 170 195 L 158 200 L 150 190 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- South America -->
+        <path d="M 165 210 L 210 205 L 230 230 L 235 270 L 225 310 L 205 340 L 185 350 L 165 340 L 150 310 L 145 270 L 150 240 L 158 220 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Europe -->
+        <path d="M 380 50 L 440 45 L 455 60 L 450 80 L 435 90 L 415 95 L 395 85 L 378 70 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Scandinavia -->
+        <path d="M 400 30 L 425 25 L 435 45 L 415 50 L 400 45 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Africa -->
+        <path d="M 385 110 L 450 105 L 470 130 L 475 175 L 465 220 L 450 255 L 425 275 L 400 270 L 375 245 L 365 210 L 365 170 L 370 135 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Middle East -->
+        <path d="M 455 90 L 510 88 L 525 110 L 510 130 L 480 135 L 460 120 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Russia / Central Asia -->
+        <path d="M 445 30 L 620 20 L 650 45 L 640 70 L 610 80 L 560 85 L 510 88 L 480 75 L 455 60 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- South Asia -->
+        <path d="M 530 110 L 590 105 L 605 130 L 600 160 L 580 175 L 560 170 L 540 155 L 525 135 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Southeast Asia -->
+        <path d="M 610 120 L 660 115 L 675 140 L 665 165 L 645 170 L 620 155 L 608 138 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- China / East Asia -->
+        <path d="M 600 65 L 680 60 L 710 80 L 715 110 L 695 130 L 665 135 L 635 120 L 610 100 L 598 82 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Japan -->
+        <path d="M 720 70 L 740 65 L 748 82 L 735 92 L 720 85 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Indonesia / Maritime SE Asia -->
+        <path d="M 635 185 L 670 182 L 685 198 L 670 210 L 645 208 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <path d="M 695 188 L 725 185 L 735 200 L 720 212 L 698 205 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+        <!-- Australia -->
+        <path d="M 680 255 L 760 248 L 790 270 L 790 310 L 770 335 L 730 340 L 695 325 L 675 300 L 672 275 Z" fill="#1a2535" stroke="#243040" stroke-width="0.8"/>
+
+        <!-- Grid lines -->
+        <line x1="0" y1="200" x2="900" y2="200" stroke="#1e2a38" stroke-width="0.5" stroke-dasharray="4,8"/>
+        <line x1="450" y1="0" x2="450" y2="400" stroke="#1e2a38" stroke-width="0.5" stroke-dasharray="4,8"/>
+
+        <!-- Outbreak points — rendered dynamically -->
+        <g id="outbreakPoints"></g>
+      </svg>
+
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Critical</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>High</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Moderate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Monitoring</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Chart -->
+    <div class="chart-area">
+      <div class="chart-header">
+        <div class="chart-title">Global Case Trend — New Alerts per Week</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="setChartView('12w', this)">12W</button>
+          <button class="chart-tab" onclick="setChartView('6m', this)">6M</button>
+          <button class="chart-tab" onclick="setChartView('1y', this)">1Y</button>
+        </div>
+      </div>
+      <div class="chart-svg-wrap">
+        <svg id="trendChart" viewBox="0 0 600 130" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="no-selection">
+      <span>⊕</span>
+      <p>Select an outbreak to view details</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Data
+const outbreaks = [
+  {
+    id: 1,
+    name: 'Novel Respiratory Pathogen X',
+    pathogen: 'Unknown — likely betacoronavirus',
+    region: 'Southeast Asia',
+    country: 'Thailand / Vietnam',
+    severity: 'critical',
+    mapX: 645, mapY: 148,
+    cases: 847,
+    deaths: 62,
+    r0: 2.8,
+    cfr: 7.3,
+    doubling: 4.2,
+    spreadRisk: 91,
+    containmentScore: 28,
+    healthSystemStress: 74,
+    crossBorderRisk: 88,
+    detected: '2025-05-18',
+    timeline: [
+      { date: 'May 18', text: 'Cluster of 12 severe pneumonia cases identified in Bangkok. Unknown etiology.' },
+      { date: 'May 22', text: 'WHO notified. Samples sent to reference lab. Travel history links to rural Vietnam.' },
+      { date: 'May 28', text: 'Pathogen isolated — novel betacoronavirus. Human-to-human transmission confirmed.' },
+      { date: 'Jun 03', text: 'Case count reaches 400. Hospital admissions accelerating. PHEIC assessment initiated.' },
+      { date: 'Jun 09', text: 'WHO issues enhanced surveillance advisory. 847 confirmed cases, 62 deaths.' }
+    ],
+    description: 'A novel betacoronavirus causing severe lower respiratory tract infection. Initial cases clustered around wet markets in Bangkok with subsequent community spread. R0 estimated at 2.4–3.2, CFR currently 7.3% though likely overestimated due to limited testing capacity. Human-to-human transmission confirmed via household clusters. No approved therapeutic or vaccine. Enhanced surveillance and contact tracing underway across six provinces.'
+  },
+  {
+    id: 2,
+    name: 'H5N1 Avian Influenza Spillover',
+    pathogen: 'Influenza A (H5N1)',
+    region: 'East Africa',
+    country: 'Kenya / Ethiopia',
+    severity: 'high',
+    mapX: 440, mapY: 195,
+    cases: 214,
+    deaths: 89,
+    r0: 1.4,
+    cfr: 41.6,
+    doubling: 12.0,
+    spreadRisk: 52,
+    containmentScore: 61,
+    healthSystemStress: 68,
+    crossBorderRisk: 45,
+    detected: '2025-04-02',
+    timeline: [
+      { date: 'Apr 02', text: 'Mass die-off of poultry reported in Rift Valley. H5N1 confirmed.' },
+      { date: 'Apr 15', text: 'First human case — poultry worker with direct exposure. Hospitalized in Nairobi.' },
+      { date: 'Apr 28', text: '47 human cases confirmed. No sustained human-to-human transmission detected.' },
+      { date: 'May 20', text: 'Ethiopia reports spillover cases via cross-border livestock trade routes.' },
+      { date: 'Jun 05', text: '214 cases, 89 deaths. Sporadic — limited H2H transmission so far.' }
+    ],
+    description: 'Ongoing H5N1 spillover event driven by infected poultry in the East African Rift Valley. Extremely high case fatality rate (41.6%) consistent with historical H5N1 patterns. Critically, no sustained human-to-human transmission has been detected — spread remains primarily via direct animal contact. Pandemic risk hinges on whether the virus acquires mutations enabling efficient H2H transmission. Genomic surveillance for key adaptive mutations ongoing.'
+  },
+  {
+    id: 3,
+    name: 'Cholera Resurgence',
+    pathogen: 'Vibrio cholerae O1 El Tor',
+    region: 'South Asia',
+    country: 'Bangladesh / Myanmar',
+    severity: 'high',
+    mapX: 578, mapY: 145,
+    cases: 4820,
+    deaths: 112,
+    r0: 3.1,
+    cfr: 2.3,
+    doubling: 8.5,
+    spreadRisk: 67,
+    containmentScore: 44,
+    healthSystemStress: 71,
+    crossBorderRisk: 58,
+    detected: '2025-03-15',
+    timeline: [
+      { date: 'Mar 15', text: 'Spike in acute watery diarrhea cases in Cox\'s Bazar refugee settlements.' },
+      { date: 'Mar 22', text: 'Cholera confirmed. Contaminated water supply identified as source.' },
+      { date: 'Apr 10', text: 'Spread to Dhaka urban areas via population movement.' },
+      { date: 'May 01', text: 'Myanmar border crossings implicated in regional spread.' },
+      { date: 'Jun 01', text: '4,820 cases. OCV oral vaccine campaign launched in affected districts.' }
+    ],
+    description: 'Resurgence of Vibrio cholerae linked to WASH (water, sanitation, hygiene) breakdown in Cox\'s Bazar — site of the world\'s largest refugee settlement. Seasonal flooding has further contaminated water sources. While CFR remains relatively low at 2.3%, the sheer case burden is straining oral rehydration capacity. WHO pre-qualified OCV (oral cholera vaccine) campaign initiated. Primary concern is spread via population displacement and monsoon season amplification.'
+  },
+  {
+    id: 4,
+    name: 'Mpox Clade Ib',
+    pathogen: 'Monkeypox virus (Clade Ib)',
+    region: 'Central Africa',
+    country: 'DRC / Burundi',
+    severity: 'high',
+    mapX: 430, mapY: 218,
+    cases: 3102,
+    deaths: 67,
+    r0: 1.8,
+    cfr: 2.2,
+    doubling: 18.0,
+    spreadRisk: 63,
+    containmentScore: 38,
+    healthSystemStress: 82,
+    crossBorderRisk: 71,
+    detected: '2024-11-01',
+    timeline: [
+      { date: 'Nov 01', text: 'WHO declares mpox PHEIC renewed. Clade Ib with higher transmissibility confirmed.' },
+      { date: 'Dec 15', text: 'Spread to Burundi via cross-border movement. New transmission networks identified.' },
+      { date: 'Feb 10', text: 'Vaccine rollout begins — severely limited by supply constraints.' },
+      { date: 'Apr 20', text: 'Clade Ib exported to 3 non-endemic countries via international travel.' },
+      { date: 'Jun 08', text: '3,102 cases in DRC alone. Outbreak ongoing with insufficient vaccine coverage.' }
+    ],
+    description: 'Ongoing mpox outbreak caused by Clade Ib — a strain showing higher transmissibility than Clade IIb (which caused the 2022 global outbreak). The DRC remains the epicenter with severely strained health infrastructure. MVABAVRT (MVA-BN) vaccine supply remains critically insufficient for demand. Sexual networks and household transmission both implicated. Three cases of Clade Ib exported to Europe via air travel underscore pandemic spread risk if containment fails.'
+  },
+  {
+    id: 5,
+    name: 'Dengue Fever Surge',
+    pathogen: 'Dengue virus (DENV-3)',
+    region: 'South America',
+    country: 'Brazil / Colombia',
+    severity: 'moderate',
+    mapX: 195, mapY: 255,
+    cases: 28400,
+    deaths: 134,
+    r0: 4.2,
+    cfr: 0.47,
+    doubling: 21.0,
+    spreadRisk: 48,
+    containmentScore: 55,
+    healthSystemStress: 58,
+    crossBorderRisk: 38,
+    detected: '2025-01-10',
+    timeline: [
+      { date: 'Jan 10', text: 'Unusual early-season dengue surge in São Paulo state. DENV-3 serotype dominant.' },
+      { date: 'Feb 20', text: 'Brazil declares public health emergency. 100,000+ cases nationwide.' },
+      { date: 'Mar 30', text: 'Colombia reports DENV-3 surge consistent with regional spread.' },
+      { date: 'May 15', text: 'Aedes aegypti vector control operations scaled up in 12 Brazilian states.' },
+      { date: 'Jun 07', text: '28,400 severe cases tracked. Record season attributed to El Niño conditions.' }
+    ],
+    description: 'Record dengue season across tropical South America driven by DENV-3 serotype resurgence (population has low immunity to DENV-3 after years of DENV-1/2 dominance) and El Niño-associated higher temperatures and rainfall expanding Aedes aegypti habitat. Severe dengue (DHF/DSS) cases straining ICU capacity in São Paulo and Rio. The recently approved Dengvaxia and Qdenga vaccines are being deployed but supply is limited relative to the at-risk population.'
+  },
+  {
+    id: 6,
+    name: 'Lassa Fever Cluster',
+    pathogen: 'Lassa virus',
+    region: 'West Africa',
+    country: 'Nigeria',
+    severity: 'moderate',
+    mapX: 390, mapY: 182,
+    cases: 389,
+    deaths: 71,
+    r0: 1.1,
+    cfr: 18.3,
+    doubling: 35.0,
+    spreadRisk: 29,
+    containmentScore: 67,
+    healthSystemStress: 55,
+    crossBorderRisk: 22,
+    detected: '2025-02-01',
+    timeline: [
+      { date: 'Feb 01', text: 'Nigeria CDC reports above-average Lassa cases for seasonal peak.' },
+      { date: 'Mar 10', text: 'Two nosocomial clusters identified in Ondo State hospital.' },
+      { date: 'Apr 15', text: 'Nosocomial transmission contained. Enhanced rodent control initiated.' },
+      { date: 'May 28', text: 'Case numbers stabilizing. Ribavirin stockpile replenished.' },
+      { date: 'Jun 06', text: '389 confirmed cases, 71 deaths. Situation being monitored closely.' }
+    ],
+    description: 'Annual Lassa fever season in Nigeria tracking above the 5-year average, primarily in endemic states of Ondo, Edo, and Bauchi. Spread is predominantly via contact with multimammate rats (Mastomys natalensis) — the natural reservoir — rather than human-to-human transmission. Two hospital-based clusters occurred before PPE protocols were reinforced. Ribavirin (antiviral treatment) remains the only approved therapy. Pandemic risk is low due to limited H2H transmissibility, but CFR of 18.3% makes it a priority.'
+  },
+  {
+    id: 7,
+    name: 'Measles Resurgence',
+    pathogen: 'Measles morbillivirus',
+    region: 'Europe',
+    country: 'Romania / Ukraine',
+    severity: 'moderate',
+    mapX: 435, mapY: 72,
+    cases: 2140,
+    deaths: 8,
+    r0: 14.0,
+    cfr: 0.37,
+    doubling: 11.0,
+    spreadRisk: 72,
+    containmentScore: 58,
+    healthSystemStress: 31,
+    crossBorderRisk: 80,
+    detected: '2025-01-20',
+    timeline: [
+      { date: 'Jan 20', text: 'Measles cases in Romania spike — majority in unvaccinated children.' },
+      { date: 'Feb 10', text: 'WHO warns of measles resurgence across Europe post-COVID vaccination gaps.' },
+      { date: 'Mar 25', text: 'Ukraine reports cross-border cases. Displacement complicating vaccination campaigns.' },
+      { date: 'May 10', text: 'Emergency MMR catch-up campaigns launched in 6 Romanian counties.' },
+      { date: 'Jun 04', text: '2,140 cases region-wide. Highest R0 of any tracked pathogen at ~14.' }
+    ],
+    description: 'Measles resurgence driven by COVID-19 pandemic-era vaccination gaps. Measles has the highest known R0 of any pathogen (~12-18) and requires 95%+ population immunity to prevent spread. Coverage fell below this threshold in several Eastern European regions between 2020-2023. Ukraine\'s ongoing conflict severely disrupts routine immunization. While CFR is low in high-income settings, complications including encephalitis and subacute sclerosing panencephalitis (SSPE) make this outbreak medically significant.'
+  },
+  {
+    id: 8,
+    name: 'Antimicrobial Resistant TB',
+    pathogen: 'M. tuberculosis (XDR)',
+    region: 'Central Asia',
+    country: 'Kazakhstan / Uzbekistan',
+    severity: 'low',
+    mapX: 555, mapY: 72,
+    cases: 612,
+    deaths: 44,
+    r0: 0.9,
+    cfr: 7.2,
+    doubling: null,
+    spreadRisk: 31,
+    containmentScore: 72,
+    healthSystemStress: 42,
+    crossBorderRisk: 35,
+    detected: '2025-01-01',
+    timeline: [
+      { date: 'Jan 01', text: 'WHO report flags Central Asia as XDR-TB hotspot — persistent from prior years.' },
+      { date: 'Feb 20', text: 'Genomic sequencing confirms novel XDR strain with additional resistance to bedaquiline.' },
+      { date: 'Apr 05', text: 'Treatment outcomes poor — 18-24 month regimens with limited efficacy.' },
+      { date: 'Jun 01', text: '612 XDR-TB cases under monitoring. Situation stable but ongoing.' }
+    ],
+    description: 'Extensively drug-resistant tuberculosis (XDR-TB) cluster in Central Asia — a region historically burdened by post-Soviet TB epidemics and inconsistent treatment completion. XDR-TB is resistant to at least four core anti-TB drugs including rifampicin and isoniazid. A novel strain resistant to bedaquiline (a last-resort drug) has been identified, raising the spectre of virtually untreatable TB. R0 < 1 means spread is not accelerating, but the antimicrobial resistance profile makes this a critical long-term biosecurity concern.'
+  }
+];
+
+const severityColors = {
+  critical: '#f85149',
+  high: '#e3902a',
+  moderate: '#d4a12a',
+  low: '#3fb950'
+};
+
+const chartData = {
+  '12w': [12, 15, 18, 22, 19, 28, 35, 42, 38, 51, 63, 71],
+  '6m': [8, 12, 10, 18, 22, 19, 28, 35, 42, 38, 51, 63, 71, 68, 82, 95, 88, 104, 118, 132, 125, 141, 158, 172],
+  '1y': [5,6,5,8,10,9,12,15,18,22,19,28,35,42,38,51,63,71,68,82,95,88,104,118,132,125,141,158,172,168,185,199,212,205,220,235,228,245,258,270,262,278,292,305,298,315,328,342,335,350]
+};
+
+let activeFilter = 'all';
+let selectedId = null;
+let activeChart = '12w';
+
+function setThreat(level, el) {
+  activeFilter = level;
+  document.querySelectorAll('.threat-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderEventList();
+}
+
+function filterEvents() {
+  renderEventList();
+}
+
+function renderEventList() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = outbreaks.filter(o => {
+    const matchLevel = activeFilter === 'all' || o.severity === activeFilter;
+    const matchSearch = !query || o.name.toLowerCase().includes(query) || o.region.toLowerCase().includes(query) || o.country.toLowerCase().includes(query);
+    return matchLevel && matchSearch;
+  });
+
+  const container = document.getElementById('eventList');
+  container.innerHTML = filtered.map(o => `
+    <div class="event-item ${selectedId === o.id ? 'selected' : ''}" onclick="selectOutbreak(${o.id})">
+      <div class="event-top">
+        <div class="severity-pip" style="background:${severityColors[o.severity]}"></div>
+        <div class="event-name">${o.name}</div>
+      </div>
+      <div class="event-region">${o.region} · ${o.country}</div>
+      <div class="event-meta">
+        <span>${o.cases.toLocaleString()} cases</span>
+        <span>${o.deaths} deaths</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Counts
+  document.getElementById('countAll').textContent = outbreaks.length;
+  document.getElementById('countCritical').textContent = outbreaks.filter(o => o.severity === 'critical').length;
+  document.getElementById('countHigh').textContent = outbreaks.filter(o => o.severity === 'high').length;
+  document.getElementById('countModerate').textContent = outbreaks.filter(o => o.severity === 'moderate').length;
+  document.getElementById('countLow').textContent = outbreaks.filter(o => o.severity === 'low').length;
+}
+
+function renderMapPoints() {
+  const g = document.getElementById('outbreakPoints');
+  g.innerHTML = outbreaks.map(o => {
+    const col = severityColors[o.severity];
+    const r = o.severity === 'critical' ? 10 : o.severity === 'high' ? 8 : o.severity === 'moderate' ? 6 : 5;
+    return `
+      <g class="outbreak-point" onclick="selectOutbreak(${o.id})" transform="translate(${o.mapX}, ${o.mapY})">
+        <circle class="ring" r="${r * 1.8}" fill="${col}" opacity="0.15"/>
+        <circle class="ring ring2" r="${r * 2.5}" fill="${col}" opacity="0.08"/>
+        <circle r="${r}" fill="${col}" opacity="0.85"/>
+        <circle r="${r * 0.4}" fill="white" opacity="0.7"/>
+        <title>${o.name} · ${o.country}</title>
+      </g>
+    `;
+  }).join('');
+}
+
+function renderStats() {
+  const totalCases = outbreaks.reduce((s, o) => s + o.cases, 0);
+  const totalDeaths = outbreaks.reduce((s, o) => s + o.deaths, 0);
+  const critical = outbreaks.filter(o => o.severity === 'critical').length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-cell">
+      <div class="stat-val" style="color:var(--teal)">${outbreaks.length}</div>
+      <div class="stat-lbl">Active Events</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" style="color:var(--red)">${critical}</div>
+      <div class="stat-lbl">Critical Alerts</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" style="color:var(--orange)">${totalCases.toLocaleString()}</div>
+      <div class="stat-lbl">Confirmed Cases</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" style="color:var(--muted)">${totalDeaths.toLocaleString()}</div>
+      <div class="stat-lbl">Deaths Reported</div>
+    </div>
+  `;
+}
+
+function selectOutbreak(id) {
+  selectedId = id;
+  const o = outbreaks.find(x => x.id === id);
+  renderEventList();
+  renderDetailPanel(o);
+}
+
+function renderDetailPanel(o) {
+  const col = severityColors[o.severity];
+  const severityLabel = o.severity.charAt(0).toUpperCase() + o.severity.slice(1);
+
+  const r0Color = o.r0 >= 3 ? 'var(--red)' : o.r0 >= 1.5 ? 'var(--orange)' : o.r0 >= 1 ? 'var(--yellow)' : 'var(--green)';
+  const cfrColor = o.cfr >= 10 ? 'var(--red)' : o.cfr >= 3 ? 'var(--orange)' : 'var(--yellow)';
+
+  document.getElementById('rightPanel').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-name">${o.name}</div>
+      <div class="detail-badges">
+        <span class="badge badge-${o.severity === 'critical' ? 'red' : o.severity === 'high' ? 'orange' : o.severity === 'moderate' ? 'yellow' : 'green'}">${severityLabel.toUpperCase()}</span>
+        <span class="badge badge-blue">${o.region}</span>
+        <span class="badge" style="background:rgba(80,80,100,0.2);color:var(--muted);border:1px solid var(--border)">${o.pathogen.split('(')[0].trim()}</span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Transmission Index (R₀)</div>
+      <div class="r0-display">
+        <div class="r0-number" style="color:${r0Color}">${o.r0}</div>
+        <div class="r0-label">estimated R₀</div>
+      </div>
+      <div class="r0-context">
+        ${o.r0 >= 2 ? `Each infected person infects ~${o.r0} others on average. Exponential growth without intervention.` :
+          o.r0 >= 1 ? `Slow spread — R₀ above 1 means outbreak will grow without containment.` :
+          `R₀ below 1 — outbreak is self-limiting under current conditions.`}
+        ${o.doubling ? ` Doubling time: <strong style="color:var(--text)">${o.doubling} days</strong>.` : ' Doubling time: not applicable (R₀ < 1).'}
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Risk Indicators</div>
+      <div class="risk-grid">
+        <div class="risk-cell">
+          <div class="risk-label">Case Fatality Rate</div>
+          <div class="risk-val" style="color:${cfrColor}">${o.cfr}%</div>
+          <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${Math.min(o.cfr*4,100)}%;background:${cfrColor}"></div></div>
+        </div>
+        <div class="risk-cell">
+          <div class="risk-label">Spread Risk</div>
+          <div class="risk-val" style="color:${o.spreadRisk > 70 ? 'var(--red)' : o.spreadRisk > 50 ? 'var(--orange)' : 'var(--yellow)'}">${o.spreadRisk}/100</div>
+          <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${o.spreadRisk}%;background:${o.spreadRisk > 70 ? 'var(--red)' : o.spreadRisk > 50 ? 'var(--orange)' : 'var(--yellow)'}"></div></div>
+        </div>
+        <div class="risk-cell">
+          <div class="risk-label">Containment Score</div>
+          <div class="risk-val" style="color:${o.containmentScore > 65 ? 'var(--green)' : o.containmentScore > 45 ? 'var(--yellow)' : 'var(--red)'}">${o.containmentScore}/100</div>
+          <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${o.containmentScore}%;background:${o.containmentScore > 65 ? 'var(--green)' : o.containmentScore > 45 ? 'var(--yellow)' : 'var(--red)'}"></div></div>
+        </div>
+        <div class="risk-cell">
+          <div class="risk-label">Cross-border Risk</div>
+          <div class="risk-val" style="color:${o.crossBorderRisk > 70 ? 'var(--red)' : o.crossBorderRisk > 50 ? 'var(--orange)' : 'var(--yellow)'}">${o.crossBorderRisk}/100</div>
+          <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${o.crossBorderRisk}%;background:${o.crossBorderRisk > 70 ? 'var(--red)' : o.crossBorderRisk > 50 ? 'var(--orange)' : 'var(--yellow)'}"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Situation Summary</div>
+      <div class="detail-desc">${o.description}</div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Event Timeline</div>
+      <div class="event-timeline">
+        ${o.timeline.map(t => `
+          <div class="tl-entry">
+            <div class="tl-dot" style="background:${col}"></div>
+            <div class="tl-date">${t.date}</div>
+            <div class="tl-text">${t.text}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function setChartView(view, el) {
+  activeChart = view;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderChart();
+}
+
+function renderChart() {
+  const data = chartData[activeChart];
+  const svg = document.getElementById('trendChart');
+  const w = 600, h = 130, pad = { t: 10, b: 20, l: 30, r: 10 };
+  const chartW = w - pad.l - pad.r;
+  const chartH = h - pad.t - pad.b;
+  const max = Math.max(...data);
+
+  const xStep = chartW / (data.length - 1);
+  const points = data.map((v, i) => ({
+    x: pad.l + i * xStep,
+    y: pad.t + chartH - (v / max) * chartH
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length-1].x} ${h - pad.b} L ${pad.l} ${h - pad.b} Z`;
+
+  // Grid lines
+  const gridLines = [0.25, 0.5, 0.75, 1].map(t => {
+    const y = pad.t + chartH - t * chartH;
+    const val = Math.round(max * t);
+    return `
+      <line x1="${pad.l}" y1="${y}" x2="${w - pad.r}" y2="${y}" stroke="#1e2a38" stroke-width="0.5"/>
+      <text x="${pad.l - 4}" y="${y + 4}" font-size="8" fill="#536070" text-anchor="end" font-family="Space Mono">${val}</text>
+    `;
+  }).join('');
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#39c5cf" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#39c5cf" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}
+    <path d="${areaPath}" fill="url(#areaGrad)"/>
+    <path d="${linePath}" fill="none" stroke="#39c5cf" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${points.map((p, i) => i === points.length - 1 ? `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#39c5cf"/>` : '').join('')}
+  `;
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toUTCString().replace('GMT', 'UTC').slice(0, -4);
+}
+
+// Init
+renderEventList();
+renderMapPoints();
+renderStats();
+renderChart();
+updateClock();
+setInterval(updateClock, 1000);
+
+// Auto-select first on load
+selectOutbreak(1);
+</script>
+</body>
+</html>
