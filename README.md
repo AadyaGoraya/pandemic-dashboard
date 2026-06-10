@@ -1,68 +1,72 @@
-# jailbreak classifier
+# pandemic early warning dashboard
 
-a browser-based tool that detects jailbreak attempts, prompt injections, and adversarial patterns in AI prompts — no backend, no api keys, just a rule-based classifier running entirely in the browser.
+a browser-based biosurveillance dashboard that tracks active disease outbreaks globally — with an interactive world map, risk indicators, case timelines, and trend charts. no backend, no dependencies, just one html file.
 
 ---
 
 ## what it does
 
-paste any prompt in and it'll tell you if it looks safe, suspicious, or like someone's actively trying to manipulate an AI model. it checks for things like:
+it's designed to look and feel like a real epidemiological monitoring tool. you get:
 
-- **role override attempts** — "you are now DAN / ignore all previous instructions" style attacks
-- **prompt injection** — trying to slip new directives into a conversation
-- **fictional framing** — using hypotheticals or "for a story" to sneak around restrictions
-- **encoding evasion** — base64, leetspeak, hyphenated characters to dodge filters
-- **authority spoofing** — fake "authorized security audit" or "anthropic approved" claims
-- **output extraction** — trying to get the model to leak its system prompt or config
-
-each result comes with a confidence score, a breakdown of which attack vectors were flagged, and a plain-english explanation of what the classifier found.
+- **global outbreak map** — colour-coded outbreak points (critical / high / moderate / monitoring) with pulse animations showing active spread
+- **left panel** — filterable list of active events by threat level, searchable by pathogen name or region
+- **risk indicators** per outbreak — R₀ (basic reproduction number), CFR, spread risk score, containment score, cross-border risk, and doubling time
+- **event timelines** — chronological progression of each outbreak from detection to current status
+- **situation summaries** — plain-english writeups explaining the epidemiology, transmission dynamics, and what makes each outbreak significant
+- **global trend chart** — weekly alert volume over 12 weeks / 6 months / 1 year
+- **live UTC clock** + alert banner for the top active threat
 
 ---
 
 ## why i built this
 
-i got curious about how content moderation and prompt safety systems actually work under the hood. most tools in this space are black boxes — you get a verdict but no insight into *why*. i wanted something transparent where you can see exactly which patterns triggered a flag and understand the reasoning.
+i got interested in how public health agencies like WHO and the US CDC structure their outbreak monitoring — and what a well-designed early warning interface for that kind of data might actually look like. most real biosurveillance dashboards are either paywalled, clunky, or buried in government portals.
 
-it's also just a genuinely useful thing to have when you're evaluating prompts or testing AI pipelines and want a quick sanity check.
+this is my attempt at a clean, readable version — the kind of tool that would help someone quickly understand *which* outbreaks are actually alarming and *why*, without needing an epidemiology degree.
 
----
-
-## how it works
-
-the classifier runs a set of weighted regex rules against the input. each rule maps to an attack category and carries a weight. when patterns fire, the weights accumulate and get normalised against the total possible score — that normalised value drives the safe / suspicious / unsafe verdict.
-
-no llm calls, no server, nothing leaving your browser. it's fully deterministic and inspectable.
+the data is fictional (based on real-world pathogen characteristics and historical outbreak patterns) but the metrics — R₀ estimates, CFR ranges, containment scores — are grounded in how these diseases actually behave.
 
 ---
 
-## features
+## the data model
 
-- rule-based classifier engine with 6 attack categories
-- confidence score + visual progress bar for each result
-- session history with click-to-reload
-- live stats (safe / suspicious / unsafe counts)
-- pre-loaded examples for each attack type
-- `cmd+enter` / `ctrl+enter` keyboard shortcut to run
+each outbreak has:
+
+```js
+{
+  name, pathogen, region, country,
+  severity,           // critical / high / moderate / low
+  cases, deaths,
+  r0,                 // basic reproduction number
+  cfr,                // case fatality rate (%)
+  doubling,           // doubling time in days
+  spreadRisk,         // 0–100 composite score
+  containmentScore,   // 0–100
+  healthSystemStress, // 0–100
+  crossBorderRisk,    // 0–100
+  timeline,           // array of { date, text } events
+  description         // full situation summary
+}
+```
 
 ---
 
 ## stack
 
-just html, css, and vanilla js. no dependencies, no build step, no frameworks. open the file and it works.
+html, css, vanilla js. no build step, no libraries, no api calls. open `index.html` and it works.
+
+fonts loaded from google fonts (space grotesk + space mono). that's the only external dependency.
 
 ---
 
 ## running it
 
 ```bash
-# clone the repo
-git clone https://github.com/yourusername/jailbreak-classifier
-
-# open in browser
+git clone https://github.com/yourusername/pandemic-dashboard
 open index.html
 ```
 
-that's it.
+or just double-click the file.
 
 ---
 
@@ -70,17 +74,18 @@ that's it.
 
 a few things i'd like to add:
 
-- [ ] llm-powered analysis mode (for edge cases the rules miss)
-- [ ] exportable session history as json
-- [ ] custom rule editor
-- [ ] severity scoring per attack vector
+- [ ] real data via WHO disease outbreak news api or promed feed
+- [ ] exportable snapshot (pdf / png) of the current dashboard state
+- [ ] "compare outbreaks" mode — plot two events side by side
+- [ ] mobile-responsive map interaction
+- [ ] historical archive — browse past outbreak events by year
 
 ---
 
-## a note on accuracy
+## a note on the data
 
-this is a rule-based heuristic, not a trained model. it's good at catching known, common attack patterns but it won't catch everything — novel or subtle attacks can slip through. treat it as a first-pass filter or a research/learning tool, not a production safety layer on its own.
+everything here is synthetic. the pathogens are real (H5N1, cholera, mpox, etc.) and the epidemiological parameters are based on published literature, but the case counts, timelines, and geographic details are invented for demonstration purposes. this is not a public health resource — don't use it for anything that actually matters.
 
 ---
 
-built as a personal project to better understand adversarial prompting and AI safety tooling.
+built to explore data visualisation for public health and practice designing information-dense dashboards that are still readable.
